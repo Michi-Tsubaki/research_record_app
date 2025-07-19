@@ -1,0 +1,64 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Python application
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Linting とテストツールを最初にインストール
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install matplotlib[agg]
+        pip install pillow
+    - name: Lint with flake8
+      run: |
+        # Python の構文エラーや未定義の名前があればビルドを停止
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero は全てのエラーを警告として扱います。GitHub エディタの幅は127文字です
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Run Flask application health check
+      run: |
+        nohup python app.py > app.log 2>&1 &
+        FLASK_PID=$!
+
+        echo "Flask アプリの起動を待機中..."
+        sleep 10 # 起動時間を確保
+
+        if grep -q "Running on http" app.log; then
+          echo "Flask アプリが正常に起動しました。"
+        else
+          echo "Flask アプリの起動に失敗しました。ログを確認してください。"
+          cat app.log
+          kill $FLASK_PID || true
+          exit 1
+        fi
+
+        echo "Flask アプリを停止中。"
+        kill $FLASK_PID || true
+      env:
+        FLASK_APP: app.py
+        FLASK_ENV: development
+    - name: Test with pytest
+      run: |
+        pytest
