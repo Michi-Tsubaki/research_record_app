@@ -4,7 +4,7 @@
 ## アプリの特徴
 「研究ノート」に代わる研究記録アプリとして，改ざん防止のために，各ページ・各画像に固有のハッシュを付している．さらに，自身のプライベートなGitLab, GitHub環境にcommit, pushすることで研究内容を秘匿しつつ，「研究ノート」として管理できる 
 
-## セットアップ
+## インストール (開発版)
 ### 1. 環境構築(リポジトリをクローンする)
 ```bash
 git clone https://github.com/Michi-Tsubaki/research_record_app.git
@@ -26,9 +26,17 @@ sudo apt install python3-venv
 ./app.py
 ```
 
-ターミナルに
+## ~~メンテ中 ~インストール (バイナリ版, jammy)~~
 ```bash
-Running on http://localhost:8000/ (Press CTRL+C to quit)
+sudo apt update
+sudo apt install -y wget
+wget https://github.com/Michi-Tsubaki/research_record_app/raw/refs/heads/master/pre-release/research-record-app-1.0.0.deb
+sudo apt install ./research-record-app-1.0.0.deb
 ```
-のようにサーバのIPが表示されるので，ブラウザで確認する．
+~~でインストールできます．~~
 
+~~ターミナルで~~
+```bash
+research-record
+```
+~~コマンドを打つことでアプリが起動します．~~
