@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>実験計画書の作成</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>実験計画書の作成</h1>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="draft_id" value="{{ entry_id if entry_id else '' }}">
+
+            <div class="form-group">
+                <label for="experiment_date">実験日:</label>
+                <input type="date" id="experiment_date" name="experiment_date" value="{{ data.experiment_date if data.experiment_date else datetime.now().strftime('%Y-%m-%d') }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="purpose">目的:</label>
+                <textarea id="purpose" name="purpose" rows="4" required>{{ data.purpose if data.purpose else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="hypothesis">仮説:</label>
+                <textarea id="hypothesis" name="hypothesis" rows="4" required>{{ data.hypothesis if data.hypothesis else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="method">手法:</label>
+                <textarea id="method" name="method" rows="6" required>{{ data.method if data.method else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="evaluation">評価方法:</label>
+                <textarea id="evaluation" name="evaluation" rows="4" required>{{ data.evaluation if data.evaluation else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="results">結果:</label>
+                <textarea id="results" name="results" rows="6">{{ data.results if data.results else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>結果（画像）:</label>
+                <input type="file" name="results_images_upload" multiple accept="image/*">
+                <ul id="results_images_list">
+                    {% for filename in data.results_images if data.results_images %}
+                        <li>
+                            <input type="hidden" name="results_images_existing" value="{{ filename }}">
+                            <span class="image-filename">{{ filename }}</span>
+                            <img src="{{ url_for('serve_image', filename=filename) }}" alt="画像" width="100">
+                            <button type="button" class="remove-image-button" data-filename="{{ filename }}">削除</button>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="form-group">
+                <label for="assessment">評価:</label>
+                <textarea id="assessment" name="assessment" rows="4">{{ data.assessment if data.assessment else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="consideration">考察:</label>
+                <textarea id="consideration" name="consideration" rows="6">{{ data.consideration if data.consideration else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="code">実験に使ったコードのリンクorコード:</label>
+                <textarea id="code" name="code" rows="6">{{ data.code if data.code else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="tips">今後のためのTips:</label>
+                <textarea id="tips" name="tips" rows="4">{{ data.tips if data.tips else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="tags">ハッシュタグ（カンマ区切り）:</label>
+                <input type="text" id="tags" name="tags" value="{{ data.tags if data.tags else '' }}">
+            </div>
+
+            <div class="button-group">
+                <button type="submit" name="draft_button" value="1" class="button">一時保存</button>
+                <button type="submit" name="save_button" value="1" class="button">保存</button>
+                <a href="{{ url_for('index') }}" class="button cancel-button">キャンセル</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // 画像削除ボタンのイベントリスナー
+        document.addEventListener('click', function(event) {
+            if (event.target && event.target.classList.contains('remove-image-button')) {
+                event.preventDefault();
+                var listItem = event.target.closest('li');
+                if (listItem) {
+                    listItem.remove();
+                }
+            }
+        });
+
+        // 自動保存の実装
+        let autoSaveTimer;
+        const form = document.querySelector('form');
+
+        function scheduleAutoSave() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                const formData = new FormData(form);
+                formData.append('draft_button', '1');
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('自動一時保存しました。');
+                    } else {
+                        console.error('自動一時保存に失敗しました。');
+                    }
+                })
+                .catch(error => {
+                    console.error('自動一時保存エラー:', error);
+                });
+            }, 3000);
+        }
+
+        form.addEventListener('input', scheduleAutoSave);
+        form.addEventListener('change', scheduleAutoSave);
+    </script>
+</body>
+</html>

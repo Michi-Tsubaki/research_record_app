@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>エントリー表示 - {{ entry.id }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>エントリー詳細</h1>
+        <div class="entry-details">
+            <p><strong>ID:</strong> {{ entry.id }}</p>
+            <p><strong>タイプ:</strong> {{ entry.type }}</p>
+            <p><strong>作成日時:</strong> {{ entry.timestamp }}</p>
+            <p><strong>状態:</strong> {{ '完成' if entry.status == 'completed' else '下書き' }}</p>
+            {% if entry.hash %}
+                <p><strong>ハッシュ:</strong> {{ entry.hash[:16] }}...</p>
+            {% endif %}
+
+            <hr>
+
+            {% if entry.type == 'daily' %}
+                <h2>日々の記録</h2>
+                <p><strong>日付:</strong> {{ entry.data.date }}</p>
+                <p><strong>勤務形態:</strong> {{ entry.data.work_type }}</p>
+                {% if entry.data.work_type == '登校' %}
+                    <p><strong>来た時間:</strong> {{ entry.data.arrival_time }}</p>
+                    <p><strong>帰る時間:</strong> {{ entry.data.departure_time }}</p>
+                {% endif %}
+                <p><strong>名前:</strong> {{ entry.data.name }}</p>
+                <p><strong>今日の目標:</strong> <pre>{{ entry.data.today_goal }}</pre></p>
+                <p><strong>今日のTODO:</strong> <pre>{{ entry.data.today_todo }}</pre></p>
+                <p><strong>今日できたこと:</strong> <pre>{{ entry.data.today_completed }}</pre></p>
+                {% if entry.data.today_completed_images %}
+                    <p><strong>今日できたこと（画像）:</strong></p>
+                    <div class="image-gallery">
+                        {% for filename in entry.data.today_completed_images %}
+                            <img src="{{ url_for('serve_image', filename=filename) }}" alt="完了画像" loading="lazy">
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <p><strong>今日できなかったこととその理由:</strong> <pre>{{ entry.data.today_incomplete_reason }}</pre></p>
+                <p><strong>明日のTODO:</strong> <pre>{{ entry.data.tomorrow_todo }}</pre></p>
+                <p><strong>タグ:</strong> {{ entry.data.tags }}</p>
+
+            {% elif entry.type == 'experiment' %}
+                <h2>実験計画書</h2>
+                <p><strong>実験日:</strong> {{ entry.data.experiment_date }}</p>
+                <p><strong>目的:</strong> <pre>{{ entry.data.purpose }}</pre></p>
+                <p><strong>仮説:</strong> <pre>{{ entry.data.hypothesis }}</pre></p>
+                <p><strong>手法:</strong> <pre>{{ entry.data.method }}</pre></p>
+                <p><strong>評価方法:</strong> <pre>{{ entry.data.evaluation }}</pre></p>
+                <p><strong>結果:</strong> <pre>{{ entry.data.results }}</pre></p>
+                {% if entry.data.results_images %}
+                    <p><strong>結果（画像）:</strong></p>
+                    <div class="image-gallery">
+                        {% for filename in entry.data.results_images %}
+                            <img src="{{ url_for('serve_image', filename=filename) }}" alt="結果画像" loading="lazy">
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <p><strong>評価:</strong> <pre>{{ entry.data.assessment }}</pre></p>
+                <p><strong>考察:</strong> <pre>{{ entry.data.consideration }}</pre></p>
+                <p><strong>コード:</strong> <pre>{{ entry.data.code }}</pre></p>
+                <p><strong>Tips:</strong> <pre>{{ entry.data.tips }}</pre></p>
+                <p><strong>タグ:</strong> {{ entry.data.tags }}</p>
+
+            {% elif entry.type == 'participation' %}
+                <h2>参加報告書</h2>
+                <p><strong>内容:</strong> <pre>{{ entry.data.content }}</pre></p>
+                {% if entry.data.images %}
+                    <p><strong>画像:</strong></p>
+                    <div class="image-gallery">
+                        {% for filename in entry.data.images %}
+                            <img src="{{ url_for('serve_image', filename=filename) }}" alt="報告画像" loading="lazy">
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <p><strong>タグ:</strong> {{ entry.data.tags }}</p>
+
+            {% elif entry.type == 'research_meeting' %}
+                <h2>研究会報告書</h2>
+                <p><strong>研究会タイトル:</strong> {{ entry.data.meeting_title }}</p>
+                <p><strong>現在の状況:</strong> <pre>{{ entry.data.current_status }}</pre></p>
+                <p><strong>今週行ったこととそれに対する考え:</strong> <pre>{{ entry.data.weekly_activities_thoughts }}</pre></p>
+                {% if entry.data.weekly_activity_images %}
+                    <p><strong>今週行ったこと（画像）:</strong></p>
+                    <div class="image-gallery">
+                        {% for filename in entry.data.weekly_activity_images %}
+                            <img src="{{ url_for('serve_image', filename=filename) }}" alt="活動画像" loading="lazy">
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <p><strong>アドバイスがほしいこと:</strong> <pre>{{ entry.data.advice_needed }}</pre></p>
+                <p><strong>来週取り組むこと:</strong> <pre>{{ entry.data.next_week_tasks }}</pre></p>
+                <p><strong>タグ:</strong> {{ entry.data.tags }}</p>
+
+            {% else %}
+                <p>不明なエントリータイプです。</p>
+            {% endif %}
+
+            <div class="button-group" style="margin-top: 20px;">
+                <a href="{{ url_for('index') }}" class="button">一覧に戻る</a>
+                <a href="{{ url_for('edit_entry', entry_id=entry.id) }}" class="button">編集</a>
+                <a href="{{ url_for('export_pdf', entry_id=entry.id) }}" class="button">PDF出力</a>
+                <a href="{{ url_for('export_png', entry_id=entry.id) }}" class="button">PNG出力</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
