@@ -1,5 +1,6 @@
 #!./venv/bin/python3
 
+import os
 from flask import Flask, render_template, request, redirect, url_for, send_file
 import json
 import os
@@ -13,6 +14,9 @@ from PIL import Image
 import matplotlib.font_manager as fm
 import tempfile
 import base64
+import webbrowser
+import time
+import threading
 
 class ResearchDiaryCore:
     def __init__(self, script_dir):
@@ -935,4 +939,14 @@ def serve_image(filename):
     return send_file(core_app.get_image_path(filename), mimetype='image/jpeg')
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    host = os.environ.get('FLASK_RUN_HOST', 'localhost')
+    port = os.environ.get('FLASK_RUN_PORT', '5000')
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        def open_browser():
+            time.sleep(2)
+            print(f"ブラウザを自動起動中: http://{host}:{port}")
+            webbrowser.open_new_tab(f"http://{host}:{port}")
+
+        threading.Timer(1, open_browser).start()
+
+    app.run(debug=True)
