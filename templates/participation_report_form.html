@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>研究会報告書の作成</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Modals (for image selection) */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 700px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+            animation-name: animatetop;
+            animation-duration: 0.4s;
+            border-radius: 8px;
+        }
+        @keyframes animatetop {
+            from {top: -300px; opacity: 0}
+            to {top: 0; opacity: 1}
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .image-selection-list {
+            list-style: none;
+            padding: 0;
+            max-height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+        .image-selection-list li {
+            padding: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .image-selection-list li:last-child {
+            border-bottom: none;
+        }
+        .image-selection-list li:hover {
+            background-color: #f0f0f0;
+        }
+        .image-selection-list li.selected {
+            background-color: #e0f0ff;
+            font-weight: bold;
+        }
+        .image-selection-list img {
+            max-width: 50px;
+            max-height: 50px;
+            border-radius: 4px;
+        }
+        .selected-images-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            padding: 5px;
+            min-height: 60px;
+            align-items: center;
+            background-color: #f9f9f9;
+        }
+        .selected-images-preview .preview-item {
+            display: flex;
+            align-items: center;
+            background-color: #e2e2e2;
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            gap: 5px;
+        }
+        .selected-images-preview .preview-item img {
+            width: 30px;
+            height: 30px;
+            border-radius: 3px;
+        }
+        .selected-images-preview .remove-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 1.2em;
+            line-height: 1;
+            padding: 0 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>研究会報告書の作成</h1>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="draft_id" value="{{ entry_id if entry_id else '' }}">
+
+            <div class="form-group">
+                <label for="meeting_title">研究会タイトル:</label>
+                <input type="text" id="meeting_title" name="meeting_title" value="{{ data.meeting_title if data.meeting_title else datetime.now().strftime('〇月〇日の研究会') }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="current_status">現在の状況:</label>
+                <textarea id="current_status" name="current_status" rows="6" required>{{ data.current_status if data.current_status else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="weekly_activities_thoughts">今週行ったこととそれに対する考え:</label>
+                <textarea id="weekly_activities_thoughts" name="weekly_activities_thoughts" rows="8" required>{{ data.weekly_activities_thoughts if data.weekly_activities_thoughts else '' }}</textarea>
+                <button type="button" class="button" onclick="openImageSelectionModal()">画像を追加（外部参照）</button>
+                <div id="selected_weekly_activity_images_preview" class="selected-images-preview">
+                    {% for filename in data.weekly_activity_images if data.weekly_activity_images %}
+                        <div class="preview-item" data-filename="{{ filename }}">
+                            <input type="hidden" name="weekly_activity_images_referenced" value="{{ filename }}">
+                            <img src="{{ url_for('serve_image', filename=filename) }}" alt="画像" loading="lazy">
+                            <span>{{ filename }}</span>
+                            <button type="button" class="remove-btn" onclick="removeSelectedImage(this)">&times;</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="advice_needed">アドバイスがほしいこと:</label>
+                <textarea id="advice_needed" name="advice_needed" rows="6" required>{{ data.advice_needed if data.advice_needed else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="next_week_tasks">来週取り組むこと:</label>
+                <textarea id="next_week_tasks" name="next_week_tasks" rows="6" required>{{ data.next_week_tasks if data.next_week_tasks else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="tags">ハッシュタグ（カンマ区切り）:</label>
+                <input type="text" id="tags" name="tags" value="{{ data.tags if data.tags else '' }}">
+            </div>
+
+            <div class="button-group">
+                <button type="submit" name="draft_button" value="1" class="button">一時保存</button>
+                <button type="submit" name="save_button" value="1" class="button">保存</button>
+                <a href="{{ url_for('index') }}" class="button cancel-button">キャンセル</a>
+            </div>
+        </form>
+    </div>
+
+    <div id="imageSelectionModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeImageSelectionModal()">&times;</span>
+            <h2>既存の画像を選択</h2>
+            <input type="text" id="imageSearch" onkeyup="filterImages()" placeholder="画像を検索...">
+            <ul id="imageSelectionList" class="image-selection-list">
+                </ul>
+            <button type="button" class="button" onclick="addSelectedImages()">選択を追加</button>
+            <button type="button" class="button cancel-button" onclick="closeImageSelectionModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Image Selection Modal Logic ---
+        const imageSelectionModal = document.getElementById('imageSelectionModal');
+        const imageSelectionList = document.getElementById('imageSelectionList');
+        const selectedWeeklyActivityImagesPreview = document.getElementById('selected_weekly_activity_images_preview');
+
+        let allAvailableImages = []; // 全ての利用可能な画像を保持
+
+        // Flaskから渡されたJSONデータを解析
+        const rawAllImagesForSelection = "{{ all_images_for_selection | safe }}";
+        if (rawAllImagesForSelection) {
+            try {
+                allAvailableImages = JSON.parse(rawAllImagesForSelection.replace(/&#34;/g, '"'));
+            } catch (e) {
+                console.error("Error parsing all_images_for_selection:", e);
+            }
+        }
+        
+        // 初期ロード時に既存の画像をプレビューに追加
+        document.addEventListener('DOMContentLoaded', () => {
+            const existingHiddenInputs = document.querySelectorAll('input[name="weekly_activity_images_referenced"]');
+            existingHiddenInputs.forEach(input => {
+                const filename = input.value;
+                const parentDiv = input.closest('.preview-item');
+                // Ensure the image path is correct for display
+                const imgElement = parentDiv.querySelector('img');
+                if (imgElement) {
+                    imgElement.src = "{{ url_for('serve_image', filename='') }}" + filename;
+                }
+            });
+        });
+
+
+        function openImageSelectionModal() {
+            imageSelectionModal.style.display = 'flex'; // Use flex for centering
+            displayImagesInModal(allAvailableImages);
+            document.getElementById('imageSearch').value = ''; // 検索フィールドをクリア
+        }
+
+        function closeImageSelectionModal() {
+            imageSelectionModal.style.display = 'none';
+        }
+
+        function displayImagesInModal(images) {
+            imageSelectionList.innerHTML = '';
+            images.forEach(img => {
+                const li = document.createElement('li');
+                li.dataset.filename = img.filename;
+                li.innerHTML = `
+                    <img src="{{ url_for('serve_image', filename='') }}${img.filename}" alt="画像" loading="lazy">
+                    <span>${img.filename} (タイプ: ${img.source_type}, 元フィールド: ${img.source_field})</span>
+                `;
+                li.onclick = function() {
+                    li.classList.toggle('selected');
+                };
+                imageSelectionList.appendChild(li);
+            });
+        }
+
+        function filterImages() {
+            const searchTerm = document.getElementById('imageSearch').value.toLowerCase();
+            const filteredImages = allAvailableImages.filter(img =>
+                img.filename.toLowerCase().includes(searchTerm) ||
+                img.source_type.toLowerCase().includes(searchTerm) ||
+                img.source_field.toLowerCase().includes(searchTerm)
+            );
+            displayImagesInModal(filteredImages);
+        }
+
+        function addSelectedImages() {
+            const selectedItems = imageSelectionList.querySelectorAll('li.selected');
+            selectedItems.forEach(item => {
+                const filename = item.dataset.filename;
+                // 既に選択リストにあるか確認
+                const existingInput = selectedWeeklyActivityImagesPreview.querySelector(`input[value="${filename}"]`);
+                if (!existingInput) {
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+                    div.dataset.filename = filename;
+                    div.innerHTML = `
+                        <input type="hidden" name="weekly_activity_images_referenced" value="${filename}">
+                        <img src="{{ url_for('serve_image', filename='') }}${filename}" alt="画像" loading="lazy">
+                        <span>${filename}</span>
+                        <button type="button" class="remove-btn" onclick="removeSelectedImage(this)">&times;</button>
+                    `;
+                    selectedWeeklyActivityImagesPreview.appendChild(div);
+                }
+            });
+            closeImageSelectionModal();
+            scheduleAutoSave(); // 画像選択も変更とみなし自動保存をスケジュール
+        }
+
+        function removeSelectedImage(buttonElement) {
+            const div = buttonElement.closest('.preview-item');
+            if (div) {
+                div.remove();
+            }
+            scheduleAutoSave(); // 画像削除も変更とみなし自動保存をスケジュール
+        }
+
+        // --- Auto Save Logic (Common for all forms) ---
+        let autoSaveTimer;
+        const form = document.querySelector('form');
+
+        function scheduleAutoSave() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                const formData = new FormData(form);
+                formData.append('draft_button', '1');
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('自動一時保存しました。');
+                    } else {
+                        console.error('自動一時保存に失敗しました。');
+                    }
+                })
+                .catch(error => {
+                    console.error('自動一時保存エラー:', error);
+                });
+            }, 3000);
+        }
+
+        form.addEventListener('input', scheduleAutoSave);
+        form.addEventListener('change', scheduleAutoSave); // selectやfile inputの変更も対象
+
+    </script>
+</body>
+</html>

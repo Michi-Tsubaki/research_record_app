@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日頃の記録</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>日頃の記録</h1>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="draft_id" value="{{ entry_id if entry_id else '' }}">
+
+            <div class="form-group">
+                <label for="date">日付:</label>
+                <input type="date" id="date" name="date" value="{{ data.date if data.date else datetime.now().strftime('%Y-%m-%d') }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="work_type">勤務形態:</label>
+                <select id="work_type" name="work_type" onchange="toggleTimeFields()" required>
+                    <option value="" {% if not data.work_type %}selected{% endif %} disabled>選択してください</option>
+                    <option value="登校" {% if data.work_type == '登校' %}selected{% endif %}>登校</option>
+                    <option value="在宅" {% if data.work_type == '在宅' %}selected{% endif %}>在宅</option>
+                    <option value="休み" {% if data.work_type == '休み' %}selected{% endif %}>休み</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="arrival_time">来た時間:</label>
+                <input type="time" id="arrival_time" name="arrival_time" value="{{ data.arrival_time if data.arrival_time else '' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="departure_time">帰る時間:</label>
+                <input type="time" id="departure_time" name="departure_time" value="{{ data.departure_time if data.departure_time else '' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="name">名前:</label>
+                <input type="text" id="name" name="name" value="{{ data.name if data.name else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="today_goal">今日の目標:</label>
+                <textarea id="today_goal" name="today_goal" rows="4" required>{{ data.today_goal if data.today_goal else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="today_todo">今日のTODO:</label>
+                <textarea id="today_todo" name="today_todo" rows="4" required>{{ data.today_todo if data.today_todo else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="today_completed">今日できたこと:</label>
+                <textarea id="today_completed" name="today_completed" rows="4" required>{{ data.today_completed if data.today_completed else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>今日できたこと（画像）:</label>
+                <input type="file" name="today_completed_images_upload" multiple accept="image/*">
+                <ul id="today_completed_images_list">
+                    {% for filename in data.today_completed_images if data.today_completed_images %}
+                        <li>
+                            <input type="hidden" name="today_completed_images_existing" value="{{ filename }}">
+                            <span class="image-filename">{{ filename }}</span>
+                            <img src="{{ url_for('serve_image', filename=filename) }}" alt="画像" width="100">
+                            <button type="button" class="remove-image-button" data-filename="{{ filename }}">削除</button>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="form-group">
+                <label for="today_incomplete_reason">今日できなかったこととその理由:</label>
+                <textarea id="today_incomplete_reason" name="today_incomplete_reason" rows="4" required>{{ data.today_incomplete_reason if data.today_incomplete_reason else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="tomorrow_todo">明日のTODO:</label>
+                <textarea id="tomorrow_todo" name="tomorrow_todo" rows="4" required>{{ data.tomorrow_todo if data.tomorrow_todo else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="tags">ハッシュタグ（カンマ区切り）:</label>
+                <input type="text" id="tags" name="tags" value="{{ data.tags if data.tags else '' }}">
+            </div>
+
+            <div class="button-group">
+                <button type="submit" name="draft_button" value="1" class="button">一時保存</button>
+                <button type="submit" name="save_button" value="1" class="button">保存</button>
+                <a href="{{ url_for('index') }}" class="button cancel-button">キャンセル</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function toggleTimeFields() {
+            var workType = document.getElementById('work_type').value;
+            var arrivalTimeField = document.getElementById('arrival_time');
+            var departureTimeField = document.getElementById('departure_time');
+
+            if (workType === '登校') {
+                arrivalTimeField.disabled = false;
+                departureTimeField.disabled = false;
+            } else {
+                arrivalTimeField.disabled = true;
+                departureTimeField.disabled = true;
+                arrivalTimeField.value = '';
+                departureTimeField.value = '';
+            }
+        }
+
+        // 初期ロード時に状態をセット
+        window.onload = toggleTimeFields;
+
+        // 画像削除ボタンのイベントリスナー
+        document.addEventListener('click', function(event) {
+            if (event.target && event.target.classList.contains('remove-image-button')) {
+                event.preventDefault(); // デフォルトのフォーム送信を防止
+                var listItem = event.target.closest('li');
+                if (listItem) {
+                    listItem.remove();
+                }
+            }
+        });
+
+        // 自動保存の実装
+        let autoSaveTimer;
+        const form = document.querySelector('form');
+
+        function scheduleAutoSave() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                const formData = new FormData(form);
+                formData.append('draft_button', '1'); // 一時保存ボタンを押したことにする
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('自動一時保存しました。');
+                    } else {
+                        console.error('自動一時保存に失敗しました。');
+                    }
+                })
+                .catch(error => {
+                    console.error('自動一時保存エラー:', error);
+                });
+            }, 3000); // 3秒後に自動保存
+        }
+
+        // フォーム内の入力要素の変更を監視
+        form.addEventListener('input', scheduleAutoSave);
+        form.addEventListener('change', scheduleAutoSave); // selectやfile inputの変更も対象
+    </script>
+</body>
+</html>
