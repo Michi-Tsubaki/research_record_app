@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import matplotlib.font_manager as fm
 import tempfile
+import base64
 
 class ResearchDiaryCore:
     def __init__(self, script_dir):
