@@ -7,16 +7,11 @@ import hashlib
 import shutil
 import uuid
 from datetime import datetime
-import textwrap # For text wrapping in PDF/PNG
+import textwrap
 import matplotlib.pyplot as plt
 from PIL import Image
-import matplotlib.font_manager as fm # For font properties in matplotlib
-import tempfile # Add this line
-
-# --- Core ResearchDiaryApp Logic (Refactored) ---
-# Note: For simplicity, I'm embedding the core logic directly here.
-# In a larger project, you might keep this in a separate file (e.g., research_logic.py)
-# and import it.
+import matplotlib.font_manager as fm
+import tempfile
 
 class ResearchDiaryCore:
     def __init__(self, script_dir):
@@ -27,12 +22,12 @@ class ResearchDiaryCore:
 
         self.data_file = os.path.join(self.script_dir, "research_data.json")
         self.draft_file = os.path.join(self.script_dir, "research_drafts.json")
-        self.html_file = os.path.join(self.script_dir, "research_data.html") # HTML export for full data view
+        self.html_file = os.path.join(self.script_dir, "research_data.html")
 
         self.entries = []
         self.drafts = []
 
-        self.setup_fonts() # Call font setup once for matplotlib
+        self.setup_fonts()
         self.load_data()
 
     def setup_fonts(self):
@@ -125,8 +120,6 @@ class ResearchDiaryCore:
 
     def generate_hash(self, data):
         """改ざん防止のためのハッシュ生成"""
-        # Dictionaryのキーの順序を固定してハッシュを計算
-        # 画像リストはファイル名のみでハッシュに含める
         temp_data = data.copy()
         for key in ['today_completed_images', 'results_images', 'images', 'weekly_activity_images']:
             if key in temp_data and isinstance(temp_data[key], list):
@@ -174,7 +167,7 @@ class ResearchDiaryCore:
     def save_draft(self, entry_data):
         """下書きの保存"""
         draft_id = entry_data.get('draft_id')
-        if not draft_id: # 新規下書きの場合
+        if not draft_id:
             draft_id = self.generate_id(f"draft_{entry_data['type']}")
 
         draft = {
@@ -185,7 +178,6 @@ class ResearchDiaryCore:
             'status': 'draft'
         }
 
-        # 既存の下書きを更新または新規追加
         for i, d in enumerate(self.drafts):
             if d['id'] == draft_id:
                 self.drafts[i] = draft
@@ -251,8 +243,7 @@ class ResearchDiaryCore:
                 'tags': draft['data'].get('tags', ''),
                 'status': '下書き'
             })
-        # 最新のものが上に来るように並べ替え
-        combined.sort(key=lambda x: x['id'], reverse=True) # IDにはタイムスタンプが含まれるため
+        combined.sort(key=lambda x: x['id'], reverse=True)
         return combined
 
     def get_all_images_for_selection(self):
@@ -265,7 +256,6 @@ class ResearchDiaryCore:
             elif entry['type'] == 'experiment' and entry['data'].get('results_images'):
                 for img_name in entry['data']['results_images']:
                     image_list.append({'filename': img_name, 'source_type': 'experiment', 'source_field': 'results_images'})
-        # 下書きからも画像を含めるかどうかは要検討（今回は完成分のみ）
         return image_list
 
 
@@ -273,7 +263,6 @@ class ResearchDiaryCore:
         """完成エントリーをJSONに保存"""
         with open(self.data_file, 'w', encoding='utf-8') as f:
             json.dump(self.entries, f, ensure_ascii=False, indent=2)
-        # HTMLエクスポートは独立して呼び出すか、自動生成するか
         self.save_html() # Always generate HTML on data save
 
     def save_drafts(self):
@@ -443,7 +432,6 @@ class ResearchDiaryCore:
     def _create_pdf_png_output(self, entry, output_filename, output_format):
         """PDF/PNG出力の共通ロジック"""
         try:
-            # フォント設定を再取得（確実にするため）
             if self.font_path and os.path.exists(self.font_path):
                 font_prop = fm.FontProperties(fname=self.font_path)
             else:
@@ -919,7 +907,6 @@ def export_pdf(entry_id):
     if not entry:
         return "エントリーが見つかりません", 404
 
-    # 一時ファイルにPDFを保存
     temp_dir = tempfile.gettempdir()
     temp_pdf_path = os.path.join(temp_dir, f"{entry_id}.pdf")
 
@@ -934,7 +921,6 @@ def export_png(entry_id):
     if not entry:
         return "エントリーが見つかりません", 404
 
-    # 一時ファイルにPNGを保存
     temp_dir = tempfile.gettempdir()
     temp_png_path = os.path.join(temp_dir, f"{entry_id}.png")
 
@@ -945,8 +931,7 @@ def export_png(entry_id):
 @app.route('/images/<filename>')
 def serve_image(filename):
     """画像をWeb経由で提供するためのルート"""
-    return send_file(core_app.get_image_path(filename), mimetype='image/jpeg') # Adjust mimetype as needed
-
+    return send_file(core_app.get_image_path(filename), mimetype='image/jpeg')
 
 if __name__ == '__main__':
-    app.run(debug=True) # debug=True は開発用です。本番環境ではFalseにしてください。
+    app.run(debug=False)
