@@ -1,5 +1,4 @@
-# research_record_app
-研究記録アプリテンプレートのBeta版
+# 研究記録アプリ
 
 ![画像](images/image.png)
 ## アプリの特徴
